@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>八字命格 · 天机问道</title>
+  <style>
+    /* ── Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:   #d4a84b;
+      --gold2:  #f0c96a;
+      --red:    #c0392b;
+      --ink:    #0d0d14;
+      --panel:  #12121e;
+      --border: rgba(212,168,75,.22);
+      --text:   #e8dfc8;
+      --muted:  #8a7e6a;
+      --radius: 14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "Noto Serif SC", "SimSun", serif;
+      background: var(--ink);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Stars canvas ── */
+    #stars {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── Layout ── */
+    .wrap {
+      position: relative; z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 18px 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 64px 0 44px;
+    }
+    .logo {
+      display: inline-flex; align-items: center; gap: 14px;
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      width: 56px; height: 56px;
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 0 22px rgba(212,168,75,.35);
+      animation: pulse 3s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 22px rgba(212,168,75,.35); }
+      50%      { box-shadow: 0 0 42px rgba(212,168,75,.65); }
+    }
+    header h1 {
+      font-size: clamp(28px, 6vw, 46px);
+      letter-spacing: .18em;
+      background: linear-gradient(135deg, var(--gold2), var(--gold), #a0722a);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+    }
+    header p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+      letter-spacing: .08em;
+    }
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 28px 0;
+      color: var(--border);
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: .5;
+    }
+    .divider span { font-size: 18px; color: var(--gold); opacity: .7; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 30px;
+      margin-bottom: 22px;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 40px rgba(0,0,0,.5);
+    }
+    .card-title {
+      font-size: 13px;
+      letter-spacing: .14em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before {
+      content: ''; display: inline-block;
+      width: 3px; height: 14px;
+      background: var(--gold);
+      border-radius: 2px;
+    }
+
+    /* ── Form ── */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-row.full { grid-template-columns: 1fr; }
+    @media(max-width:540px){ .form-row { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .08em;
+    }
+    .field input, .field select, .field textarea {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 13px;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      width: 100%;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: rgba(212,168,75,.6);
+      box-shadow: 0 0 0 3px rgba(212,168,75,.1);
+    }
+    .field textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+    .field select option { background: #1a1a2e; }
+    .field input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(.6) sepia(1) hue-rotate(10deg) saturate(2);
+      cursor: pointer;
+    }
+
+    /* ── API Key row ── */
+    .api-row {
+      display: flex; gap: 10px; align-items: flex-end;
+    }
+    .api-row .field { flex: 1; }
+    .btn-sm {
+      padding: 10px 16px;
+      background: rgba(212,168,75,.12);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--gold);
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .2s;
+    }
+    .btn-sm:hover { background: rgba(212,168,75,.22); }
+
+    /* ── Mode toggle ── */
+    .mode-tabs {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      letter-spacing: .06em;
+      transition: all .2s;
+    }
+    .tab-btn.active {
+      background: rgba(212,168,75,.15);
+      color: var(--gold);
+    }
+
+    /* ── Pillar display ── */
+    .pillars {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 18px 0;
+    }
+    .pillar {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 6px;
+      flex: 1; max-width: 120px;
+    }
+    .pillar-label {
+      font-size: 11px; color: var(--muted);
+      letter-spacing: .1em;
+    }
+    .pillar-char {
+      width: 52px; height: 52px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      background: rgba(212,168,75,.06);
+      transition: all .3s;
+    }
+    .pillar-char.stem { color: var(--gold2); }
+    .pillar-char.branch { color: var(--text); }
+    .pillar-sep { width: 1px; height: 8px; background: var(--border); }
+
+    /* ── Submit button ── */
+    .btn-submit {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #8b6914, var(--gold), #8b6914);
+      background-size: 200% 100%;
+      border: none;
+      border-radius: 10px;
+      color: #1a1000;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .2em;
+      cursor: pointer;
+      transition: background-position .4s, transform .15s, box-shadow .3s;
+      box-shadow: 0 4px 20px rgba(212,168,75,.3);
+    }
+    .btn-submit:hover {
+      background-position: 100% 0;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(212,168,75,.45);
+    }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled {
+      opacity: .55; cursor: not-allowed; transform: none;
+    }
+
+    /* ── Loading ── */
+    .loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 40px 0;
+      text-align: center;
+    }
+    .loading.show { display: flex; }
+    .yin-yang {
+      width: 48px; height: 48px;
+      border: 3px solid var(--gold);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--muted); font-size: 14px; letter-spacing: .08em; }
+
+    /* ── Result ── */
+    #result { display: none; }
+    #result.show { display: block; }
+
+    .result-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 22px;
+    }
+    .result-icon {
+      width: 44px; height: 44px;
+      border: 1px solid var(--gold);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+    .result-title { font-size: 18px; color: var(--gold2); letter-spacing: .1em; }
+    .result-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .result-body {
+      font-size: 15px;
+      line-height: 1.9;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .result-body h2, .result-body h3 {
+      color: var(--gold);
+      margin: 22px 0 8px;
+      font-size: 16px;
+      letter-spacing: .08em;
+    }
+    .result-body strong { color: var(--gold2); }
+    .result-body em { color: var(--muted); font-style: normal; }
+    .result-body hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    /* ── Error ── */
+    .error-box {
+      display: none;
+      background: rgba(192,57,43,.1);
+      border: 1px solid rgba(192,57,43,.35);
+      border-radius: 8px;
+      padding: 14px 16px;
+      color: #e87070;
+      font-size: 14px;
+      margin-top: 14px;
+    }
+    .error-box.show { display: block; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding-top: 32px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .06em;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--gold); text-decoration: none; opacity: .7; }
+    footer a:hover { opacity: 1; }
+
+    /* ── Markdown render helper ── */
+    .md h1 { font-size: 20px; color: var(--gold); margin: 24px 0 10px; }
+    .md h2 { font-size: 17px; color: var(--gold2); margin: 20px 0 8px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+    .md h3 { font-size: 15px; color: var(--gold); margin: 16px 0 6px; }
+    .md p  { margin: 8px 0; }
+    .md ul, .md ol { margin: 8px 0 8px 22px; }
+    .md li { margin: 4px 0; }
+    .md strong { color: var(--gold2); }
+    .md blockquote {
+      border-left: 3px solid var(--gold);
+      padding: 6px 14px;
+      margin: 12px 0;
+      background: rgba(212,168,75,.05);
+      border-radius: 0 6px 6px 0;
+      color: var(--muted);
+    }
+    .md hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+    .md code {
+      background: rgba(255,255,255,.07);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .md pre code {
+      display: block; padding: 12px; overflow-x: auto;
+      border-radius: 8px; margin: 10px 0;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">☯</div>
+      <h1>天机问道</h1>
+    </div>
+    <p>八字命格 · 五行分析 · AI 解读天命</p>
+    <div class="divider"><span>✦</span></div>
+  </header>
+
+  <!-- API Config -->
+  <div class="card">
+    <div class="card-title">接入配置</div>
+
+    <!-- Protocol selector -->
+    <div class="mode-tabs" style="margin-bottom:16px;">
+      <button class="tab-btn active" id="proto-anthropic" onclick="setProtocol('anthropic')">Anthropic</button>
+      <button class="tab-btn" id="proto-openai" onclick="setProtocol('openai')">OpenAI</button>
+      <button class="tab-btn" id="proto-custom" onclick="setProtocol('custom')">自定义兼容</button>
+    </div>
+
+    <!-- API Key -->
+    <div class="api-row" style="margin-bottom:12px;">
+      <div class="field">
+        <label id="keyLabel">API Key</label>
+        <input type="password" id="apiKey" placeholder="" autocomplete="off" />
+      </div>
+      <button class="btn-sm" onclick="saveConfig()">保存</button>
+      <button class="btn-sm" onclick="clearConfig()">清除</button>
+    </div>
+
+    <!-- Base URL (OpenAI / custom only) -->
+    <div class="field" id="urlField" style="margin-bottom:12px;display:none;">
+      <label>Base URL</label>
+      <input type="text" id="baseUrl" placeholder="https://api.openai.com/v1" />
+    </div>
+
+    <!-- Model -->
+    <div class="field" style="margin-bottom:12px;">
+      <label>模型</label>
+      <select id="modelSelect"></select>
+      <input type="text" id="modelInput" placeholder="输入模型名称，如 deepseek-chat" style="display:none;" />
+    </div>
+
+    <p id="providerHint" style="font-size:12px;color:var(--muted);">Key 仅存于浏览器本地，不会上传至任何服务器。</p>
+  </div>
+
+  <!-- Input -->
+  <div class="card">
+    <div class="card-title">生辰信息</div>
+
+    <div class="mode-tabs">
+      <button class="tab-btn active" id="tab-date" onclick="switchTab('date')">生辰日期（自动推算）</button>
+      <button class="tab-btn" id="tab-manual" onclick="switchTab('manual')">直接输入八字</button>
+    </div>
+
+    <!-- Date mode -->
+    <div id="panel-date">
+      <div class="form-row">
+        <div class="field">
+          <label>出生日期</label>
+          <input type="date" id="birthDate" />
+        </div>
+        <div class="field">
+          <label>出生时辰（24小时制）</label>
+          <select id="birthHour">
+            <option value="">不知道（以子时计）</option>
+            <option value="23,0">23:00–01:00　子时</option>
+            <option value="1,2">01:00–03:00　丑时</option>
+            <option value="3,4">03:00–05:00　寅时</option>
+            <option value="5,6">05:00–07:00　卯时</option>
+            <option value="7,8">07:00–09:00　辰时</option>
+            <option value="9,10">09:00–11:00　巳时</option>
+            <option value="11,12">11:00–13:00　午时</option>
+            <option value="13,14">13:00–15:00　未时</option>
+            <option value="15,16">15:00–17:00　申时</option>
+            <option value="17,18">17:00–19:00　酉时</option>
+            <option value="19,20">19:00–21:00　戌时</option>
+            <option value="21,22">21:00–23:00　亥时</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>性别</label>
+          <select id="gender">
+            <option value="男">男</option>
+            <option value="女">女</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>出生地（可选，影响时差）</label>
+          <input type="text" id="birthPlace" placeholder="如：北京、上海、广州…" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual mode -->
+    <div id="panel-manual" style="display:none;">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+        按年柱→月柱→日柱→时柱顺序，每柱输入天干+地支（如：甲子 丙午 戊戌 庚申）
+      </p>
+      <div class="form-row">
+        <div class="field">
+          <label>年柱（天干 + 地支）</label>
+          <select id="yearStem">
+            <option value="">天干</option>
+            <option>甲</option><option>乙</option><option>丙</option><option>丁</option>
+            <option>戊</option><option>己</option><option>庚</option><option>辛</option>
+            <option>壬</option><option>癸</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end;">
+          <label>&nbsp;</label>
+          <select id="yearBranch">
+            <option value="">地支</option>
+            <option>子</option><option>丑</option><option>寅</option><option>卯</option>
+            <option>辰</option><option>巳</option><option>午</option><option>未</option>
+            <option>申</option><option>酉</option><option>戌</option><option>亥</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>月柱</label>
+          <select id="monStem">
+            <option value="">天干</option>
+            <option>甲</option><option>乙</option><option>丙</option><option>丁</option>
+            <option>戊</option><option>己</option><option>庚</option><option>辛</option>
+            <option>壬</option><option>癸</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end;">
+          <label>&nbsp;</label>
+          <select id="monBranch">
+            <option value="">地支</option>
+            <option>子</option><option>丑</option><option>寅</option><option>卯</option>
+            <option>辰</option><option>巳</option><option>午</option><option>未</option>
+            <option>申</option><option>酉</option><option>戌</option><option>亥</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>日柱</label>
+          <select id="dayStem">
+            <option value="">天干</option>
+            <option>甲</option><option>乙</option><option>丙</option><option>丁</option>
+            <option>戊</option><option>己</option><option>庚</option><option>辛</option>
+            <option>壬</option><option>癸</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end;">
+          <label>&nbsp;</label>
+          <select id="dayBranch">
+            <option value="">地支</option>
+            <option>子</option><option>丑</option><option>寅</option><option>卯</option>
+            <option>辰</option><option>巳</option><option>午</option><option>未</option>
+            <option>申</option><option>酉</option><option>戌</option><option>亥</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>时柱</label>
+          <select id="hourStem">
+            <option value="">天干</option>
+            <option>甲</option><option>乙</option><option>丙</option><option>丁</option>
+            <option>戊</option><option>己</option><option>庚</option><option>辛</option>
+            <option>壬</option><option>癸</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end;">
+          <label>&nbsp;</label>
+          <select id="hourBranch">
+            <option value="">地支</option>
+            <option>子</option><option>丑</option><option>寅</option><option>卯</option>
+            <option>辰</option><option>巳</option><option>午</option><option>未</option>
+            <option>申</option><option>酉</option><option>戌</option><option>亥</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>性别</label>
+          <select id="gender2">
+            <option value="男">男</option>
+            <option value="女">女</option>
+          </select>
+        </div>
+        <div class="field"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question -->
+  <div class="card">
+    <div class="card-title">所问之事</div>
+    <div class="form-row full">
+      <div class="field">
+        <label>您想了解的方面（可多选或自由描述）</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;" id="tagBox">
+          <button class="tag active" onclick="toggleTag(this,'综合命格总览')">综合命格</button>
+          <button class="tag" onclick="toggleTag(this,'事业与财运')">事业财运</button>
+          <button class="tag" onclick="toggleTag(this,'感情婚姻')">感情婚姻</button>
+          <button class="tag" onclick="toggleTag(this,'健康与寿元')">健康寿元</button>
+          <button class="tag" onclick="toggleTag(this,'流年运势')">流年运势</button>
+          <button class="tag" onclick="toggleTag(this,'大运走势')">大运走势</button>
+          <button class="tag" onclick="toggleTag(this,'性格与天赋')">性格天赋</button>
+        </div>
+        <textarea id="question" placeholder="也可在此详细描述您的问题，例如：我今年的事业运如何，有没有贵人相助？"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-submit" onclick="submit()">✦ 起卦问道 ✦</button>
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="yin-yang"></div>
+    <div class="loading-text">天机推演中，请稍候…</div>
+  </div>
+
+  <!-- Result -->
+  <div id="result">
+    <div class="divider" style="margin:28px 0"><span>✦</span></div>
+    <div class="card">
+      <div class="result-header">
+        <div class="result-icon">命</div>
+        <div>
+          <div class="result-title">命格解析</div>
+          <div class="result-sub" id="resultSub">—</div>
+        </div>
+      </div>
+
+      <!-- Pillar display -->
+      <div class="pillars" id="pillarDisplay" style="display:none;">
+        <div class="pillar">
+          <div class="pillar-label">年柱</div>
+          <div class="pillar-char stem" id="pYS">—</div>
+          <div class="pillar-sep"></div>
+          <div class="pillar-char branch" id="pYB">—</div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-label">月柱</div>
+          <div class="pillar-char stem" id="pMS">—</div>
+          <div class="pillar-sep"></div>
+          <div class="pillar-char branch" id="pMB">—</div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-label">日柱</div>
+          <div class="pillar-char stem" id="pDS">—</div>
+          <div class="pillar-sep"></div>
+          <div class="pillar-char branch" id="pDB">—</div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-label">时柱</div>
+          <div class="pillar-char stem" id="pHS">—</div>
+          <div class="pillar-sep"></div>
+          <div class="pillar-char branch" id="pHB">—</div>
+        </div>
+      </div>
+
+      <div class="result-body md" id="resultBody"></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>本站解读仅供参考，不构成任何人生建议。天命在我，命运由心。</p>
+    <p style="margin-top:8px;">
+      Powered by LLM API &nbsp;·&nbsp;
+      <a href="https://github.com" target="_blank">GitHub Pages</a>
+    </p>
+  </footer>
+
+</div>
+
+<!-- Tag style -->
+<style>
+.tag {
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .2s;
+  letter-spacing: .04em;
+}
+.tag.active {
+  background: rgba(212,168,75,.18);
+  border-color: rgba(212,168,75,.5);
+  color: var(--gold);
+}
+.tag:hover:not(.active) {
+  border-color: rgba(212,168,75,.3);
+  color: var(--text);
+}
+</style>
+
+<script>
+/* ── Stars ── */
+(function(){
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize(){
+    c.width = innerWidth; c.height = innerHeight;
+    stars = Array.from({length:180},()=>({
+      x: Math.random()*c.width,
+      y: Math.random()*c.height,
+      r: Math.random()*1.2+.2,
+      a: Math.random(),
+      s: (Math.random()-.5)*.003
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      s.a += s.s;
+      if(s.a<0) s.a=0,s.s*=-1;
+      if(s.a>1) s.a=1,s.s*=-1;
+      ctx.beginPath();
+      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(212,168,75,${s.a*.6+.1})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); draw();
+  window.addEventListener('resize',resize);
+})();
+
+/* ── Tab switch ── */
+function switchTab(t){
+  document.getElementById('panel-date').style.display = t==='date'?'':'none';
+  document.getElementById('panel-manual').style.display = t==='manual'?'':'none';
+  document.getElementById('tab-date').classList.toggle('active',t==='date');
+  document.getElementById('tab-manual').classList.toggle('active',t==='manual');
+}
+
+/* ── Tag toggle ── */
+function toggleTag(el, _){
+  el.classList.toggle('active');
+}
+
+/* ── Provider registry ── */
+const PROVIDERS = {
+  anthropic: {
+    keyLabel: 'API Key（sk-ant-...）',
+    keyPlaceholder: '输入您的 Anthropic API Key',
+    showUrl: false,
+    models: ['claude-opus-4-6','claude-sonnet-4-6','claude-haiku-4-5-20251001'],
+    defaultModel: 'claude-opus-4-6',
+    hint: 'Key 仅存于浏览器本地，不会上传至任何服务器。<a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--gold);text-decoration:none;">获取 API Key →</a>',
+    call: callAnthropic
+  },
+  openai: {
+    keyLabel: 'API Key（sk-...）',
+    keyPlaceholder: '输入您的 OpenAI API Key',
+    showUrl: true,
+    defaultUrl: 'https://api.openai.com/v1',
+    models: ['gpt-4o','gpt-4o-mini','gpt-4-turbo','o3-mini','o1-mini'],
+    defaultModel: 'gpt-4o',
+    hint: 'Key 仅存于浏览器本地，不会上传至任何服务器。<a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--gold);text-decoration:none;">获取 API Key →</a>',
+    call: callOpenAI
+  },
+  custom: {
+    keyLabel: 'API Key（可留空）',
+    keyPlaceholder: '输入 API Key',
+    showUrl: true,
+    defaultUrl: '',
+    models: null,
+    defaultModel: '',
+    hint: '支持任意 OpenAI 兼容接口，如 DeepSeek、Moonshot/Kimi、通义千问、智谱 GLM 等，填写对应 Base URL 与模型名即可。',
+    call: callOpenAI
+  }
+};
+
+let currentProtocol = 'anthropic';
+
+function setProtocol(proto) {
+  currentProtocol = proto;
+  localStorage.setItem('llm_protocol', proto);
+  const p = PROVIDERS[proto];
+
+  ['anthropic','openai','custom'].forEach(id =>
+    document.getElementById('proto-'+id).classList.toggle('active', id === proto)
+  );
+
+  document.getElementById('keyLabel').textContent = p.keyLabel;
+  document.getElementById('apiKey').placeholder = p.keyPlaceholder;
+  document.getElementById('apiKey').value = localStorage.getItem('llm_key_'+proto) || '';
+
+  const urlField = document.getElementById('urlField');
+  urlField.style.display = p.showUrl ? '' : 'none';
+  if (p.showUrl) {
+    document.getElementById('baseUrl').value =
+      localStorage.getItem('llm_url_'+proto) ?? p.defaultUrl ?? '';
+  }
+
+  const sel = document.getElementById('modelSelect');
+  const inp = document.getElementById('modelInput');
+  if (p.models) {
+    sel.style.display = ''; inp.style.display = 'none';
+    sel.innerHTML = p.models.map(m => `<option value="${m}">${m}</option>`).join('');
+    sel.value = localStorage.getItem('llm_model_'+proto) || p.defaultModel;
+  } else {
+    sel.style.display = 'none'; inp.style.display = '';
+    inp.value = localStorage.getItem('llm_model_'+proto) || '';
+  }
+
+  document.getElementById('providerHint').innerHTML = p.hint;
+}
+
+function saveConfig() {
+  const proto = currentProtocol;
+  const p = PROVIDERS[proto];
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key && proto !== 'custom') { showError('请先输入 API Key'); return; }
+  localStorage.setItem('llm_key_'+proto, key);
+  if (p.showUrl)
+    localStorage.setItem('llm_url_'+proto, document.getElementById('baseUrl').value.trim());
+  const model = p.models
+    ? document.getElementById('modelSelect').value
+    : document.getElementById('modelInput').value.trim();
+  localStorage.setItem('llm_model_'+proto, model);
+  showError('', '已保存至本地');
+}
+
+function clearConfig() {
+  const proto = currentProtocol;
+  localStorage.removeItem('llm_key_'+proto);
+  localStorage.removeItem('llm_url_'+proto);
+  localStorage.removeItem('llm_model_'+proto);
+  setProtocol(proto);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Migrate legacy key if present
+  const legacy = localStorage.getItem('anthropic_key');
+  if (legacy && !localStorage.getItem('llm_key_anthropic')) {
+    localStorage.setItem('llm_key_anthropic', legacy);
+  }
+  setProtocol(localStorage.getItem('llm_protocol') || 'anthropic');
+});
+
+/* ── API callers ── */
+async function callAnthropic(prompt, key, model, _baseUrl) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model, max_tokens: 2048, messages: [{ role: 'user', content: prompt }] })
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.content?.[0]?.text || '';
+}
+
+async function callOpenAI(prompt, key, model, baseUrl) {
+  const url = (baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '') + '/chat/completions';
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`
+    },
+    body: JSON.stringify({ model, max_tokens: 2048, messages: [{ role: 'user', content: prompt }] })
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+async function callLLM(prompt) {
+  const proto = currentProtocol;
+  const p = PROVIDERS[proto];
+  const key = document.getElementById('apiKey').value.trim()
+    || localStorage.getItem('llm_key_'+proto) || '';
+  if (!key && proto !== 'custom') throw new Error('请先输入 API Key');
+  const model = p.models
+    ? document.getElementById('modelSelect').value
+    : document.getElementById('modelInput').value.trim();
+  if (!model) throw new Error('请输入或选择模型名称');
+  const baseUrl = p.showUrl
+    ? (document.getElementById('baseUrl').value.trim()
+       || localStorage.getItem('llm_url_'+proto)
+       || p.defaultUrl || '')
+    : '';
+  return p.call(prompt, key, model, baseUrl);
+}
+
+/* ── Error / info ── */
+function showError(msg, info=''){
+  const box = document.getElementById('errorBox');
+  if(msg){
+    box.textContent = msg;
+    box.style.background = 'rgba(192,57,43,.1)';
+    box.style.borderColor = 'rgba(192,57,43,.35)';
+    box.style.color = '#e87070';
+    box.classList.add('show');
+  } else if(info){
+    box.textContent = info;
+    box.style.background = 'rgba(212,168,75,.08)';
+    box.style.borderColor = 'rgba(212,168,75,.3)';
+    box.style.color = 'var(--gold)';
+    box.classList.add('show');
+    setTimeout(()=>box.classList.remove('show'),2500);
+  } else {
+    box.classList.remove('show');
+  }
+}
+
+/* ── Markdown ── */
+function renderMd(raw){
+  let h = raw
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^---+$/gm,'<hr>')
+    .replace(/^[\*\-] (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, m=>'<ul>'+m+'</ul>')
+    .replace(/\n{2,}/g,'</p><p>')
+    .replace(/\n/g,'<br>');
+  h = '<p>' + h + '</p>';
+  h = h.replace(/<p>\s*(<h[123]>|<hr>|<ul>)/g,'$1');
+  h = h.replace(/(<\/h[123]>|<\/ul>|<hr>)\s*<\/p>/g,'$1');
+  return h;
+}
+
+/* ── Get question topics ── */
+function getTopics(){
+  const active = [...document.querySelectorAll('.tag.active')].map(t=>t.textContent);
+  const extra = document.getElementById('question').value.trim();
+  const parts = [];
+  if(active.length) parts.push(active.join('、'));
+  if(extra) parts.push(extra);
+  return parts.join('；') || '综合命格总览';
+}
+
+/* ── Manual mode pillars ── */
+function getManualPillars(){
+  const get = id => document.getElementById(id).value;
+  const ys=get('yearStem'),yb=get('yearBranch');
+  const ms=get('monStem'),mb=get('monBranch');
+  const ds=get('dayStem'),db=get('dayBranch');
+  const hs=get('hourStem'),hb=get('hourBranch');
+  if(!ys||!yb||!ms||!mb||!ds||!db){
+    return null;
+  }
+  return {
+    year:[ys,yb], month:[ms,mb], day:[ds,db],
+    hour: hs&&hb ? [hs,hb] : ['（未知）','（未知）']
+  };
+}
+
+/* ── Show pillars ── */
+function showPillars(p){
+  if(!p){ document.getElementById('pillarDisplay').style.display='none'; return; }
+  document.getElementById('pillarDisplay').style.display='flex';
+  document.getElementById('pYS').textContent=p.year[0];
+  document.getElementById('pYB').textContent=p.year[1];
+  document.getElementById('pMS').textContent=p.month[0];
+  document.getElementById('pMB').textContent=p.month[1];
+  document.getElementById('pDS').textContent=p.day[0];
+  document.getElementById('pDB').textContent=p.day[1];
+  document.getElementById('pHS').textContent=p.hour[0];
+  document.getElementById('pHB').textContent=p.hour[1];
+}
+
+/* ── Build prompt ── */
+function buildPrompt(info, topics){
+  return `你是一位精通中国传统命理的八字大师，拥有深厚的易学功底。请根据以下信息进行详细、专业的命格分析。
+
+【基本信息】
+${info}
+
+【所问方面】
+${topics}
+
+请按以下结构详细作答（使用 Markdown 格式）：
+
+## 一、八字排盘
+
+列出完整的年柱、月柱、日柱、时柱（若通过生辰日期推算，请先完成推算再分析），并标注每个天干地支对应的五行属性、阴阳。
+
+## 二、日主与五行格局
+
+- 日主天干及五行属性
+- 整体五行强弱分布（金木水火土各占比例/强弱）
+- 命格格局（如正官格、财官格、食神格、伤官格、印绶格等）
+
+## 三、大运流年（简要）
+
+推算出当前所在大运柱，并说明当下的运势走向。
+
+## 四、针对所问的重点解读
+
+根据用户提问的方面，结合命局给出具体、有针对性的分析（300字以上）。
+
+## 五、开运建议
+
+- 喜用神（对命主有利的五行）
+- 忌神（需要规避的五行）
+- 开运方位、颜色、数字
+- 适合的职业方向
+
+---
+
+请用中文作答，语言流畅、深入浅出，兼顾传统文化底蕴与现代生活实用性。`;
+}
+
+/* ── Main submit ── */
+async function submit(){
+  showError('');
+
+  const isManual = document.getElementById('tab-manual').classList.contains('active');
+  let info = '';
+  let pillars = null;
+
+  if(isManual){
+    pillars = getManualPillars();
+    if(!pillars){ showError('请至少填写年柱、月柱、日柱的天干地支'); return; }
+    const gender = document.getElementById('gender2').value;
+    info = `性别：${gender}\n八字：年柱【${pillars.year.join('')}】月柱【${pillars.month.join('')}】日柱【${pillars.day.join('')}】时柱【${pillars.hour.join('')}】`;
+  } else {
+    const date = document.getElementById('birthDate').value;
+    if(!date){ showError('请选择出生日期'); return; }
+    const hourVal = document.getElementById('birthHour').value;
+    const hourStr = hourVal ? document.getElementById('birthHour').selectedOptions[0].text : '时辰不详（以子时计算）';
+    const gender = document.getElementById('gender').value;
+    const place = document.getElementById('birthPlace').value.trim();
+    info = `性别：${gender}\n出生日期：${date}\n出生时辰：${hourStr}${place?'\n出生地：'+place:''}`;
+  }
+
+  const topics = getTopics();
+
+  document.querySelector('.btn-submit').disabled = true;
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('result').classList.remove('show');
+
+  try {
+    const text = await callLLM(buildPrompt(info, topics));
+
+    if(!isManual){
+      const m = text.match(/年柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^月]*月柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^日]*日柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^时]*时柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸]?)([子丑寅卯辰巳午未申酉戌亥]?)/);
+      if(m) pillars = { year:[m[1],m[2]], month:[m[3],m[4]], day:[m[5],m[6]], hour:[m[7]||'—',m[8]||'—'] };
+    }
+
+    showPillars(pillars);
+    document.getElementById('resultSub').textContent = info.split('\n')[0] + ' · ' + new Date().toLocaleDateString('zh-CN');
+    document.getElementById('resultBody').innerHTML = renderMd(text);
+    document.getElementById('result').classList.add('show');
+    document.getElementById('result').scrollIntoView({behavior:'smooth', block:'start'});
+
+  } catch(e){
+    showError('解析失败：' + e.message);
+  } finally {
+    document.querySelector('.btn-submit').disabled = false;
+    document.getElementById('loading').classList.remove('show');
+  }
+}
+</script>
+</body>
+</html>
