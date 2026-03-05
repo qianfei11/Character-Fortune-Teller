@@ -506,6 +506,25 @@ header p {
   border-top: 2px dashed var(--lavender-light);
   margin: 20px 0;
 }
+.md table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 14px;
+}
+.md th, .md td {
+  border: 1px solid var(--lavender-light);
+  padding: 8px 12px;
+  text-align: left;
+}
+.md thead tr {
+  background: var(--lavender-light);
+  color: var(--lavender-dark);
+  font-weight: 700;
+}
+.md tbody tr:nth-child(even) {
+  background: rgba(184, 158, 224, 0.06);
+}
 .md code {
   background: var(--mint-light);
   color: var(--mint-dark);

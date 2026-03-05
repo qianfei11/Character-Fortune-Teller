@@ -14,12 +14,29 @@ function renderMd(raw) {
     .replace(/\*(.+?)\*/g,     '<em>$1</em>')
     .replace(/^---+$/gm,       '<hr>')
     .replace(/^[\*\-] (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/gs, m => '<ul>' + m + '</ul>')
+    .replace(/(<li>.*<\/li>)/gs, m => '<ul>' + m + '</ul>');
+  // Table parsing: match blocks of consecutive | lines
+  h = h.replace(/((?:\|.+\|\n?)+)/g, match => {
+    const lines = match.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    const sepIdx = lines.findIndex(l => /^\|[\s\-:|]+\|$/.test(l));
+    if (sepIdx < 0) return match;
+    const parseRow = (line, tag) => {
+      const cells = line.split('|').slice(1, -1).map(c => c.trim());
+      return '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+    };
+    const heads = lines.slice(0, sepIdx);
+    const rows  = lines.slice(sepIdx + 1);
+    let tbl = '<table>';
+    if (heads.length) tbl += '<thead>' + heads.map(l => parseRow(l, 'th')).join('') + '</thead>';
+    if (rows.length)  tbl += '<tbody>' + rows.map(l => parseRow(l, 'td')).join('') + '</tbody>';
+    return tbl + '</table>';
+  });
+  h = h
     .replace(/\n{2,}/g, '</p><p>')
     .replace(/\n/g,     '<br>');
   h = '<p>' + h + '</p>';
-  h = h.replace(/<p>\s*(<h[123]>|<hr>|<ul>)/g,       '$1');
-  h = h.replace(/(<\/h[123]>|<\/ul>|<hr>)\s*<\/p>/g, '$1');
+  h = h.replace(/<p>\s*(<h[123]>|<hr>|<ul>|<table>)/g,              '$1');
+  h = h.replace(/(<\/h[123]>|<\/ul>|<hr>|<\/table>)\s*<\/p>/g, '$1');
   return h;
 }
 
