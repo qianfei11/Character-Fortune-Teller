@@ -106,7 +106,7 @@ async function callAnthropic(prompt, key, model, _baseUrl) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model, max_tokens: 2048,
+      model, max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }]
     })
   });
@@ -128,7 +128,7 @@ async function callOpenAI(prompt, key, model, baseUrl) {
       'Authorization': `Bearer ${key}`
     },
     body: JSON.stringify({
-      model, max_tokens: 2048,
+      model, max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }]
     })
   });

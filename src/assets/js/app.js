@@ -137,17 +137,38 @@ async function submit() {
   try {
     const text = await callLLM(buildPrompt(info, topics));
 
-    // Try to extract pillar characters from AI text (date mode only)
+    // Try to extract pillar data from structured JSON in LLM response
+    let pillars = null;
     if (!isManual) {
-      const m = text.match(
-        /年柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^月]*月柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^日]*日柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^时]*时柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸]?)([子丑寅卯辰巳午未申酉戌亥]?)/
-      );
-      if (m) {
-        pillars = {
-          year:  [m[1], m[2]], month: [m[3], m[4]],
-          day:   [m[5], m[6]], hour:  [m[7] || '—', m[8] || '—']
-        };
+      const jsonMatch = text.match(/\{[^{}]*"year"\s*:\s*\[[^\]]+\][^{}]*"month"\s*:\s*\[[^\]]+\][^{}]*"day"\s*:\s*\[[^\]]+\][^{}]*"hour"\s*:\s*\[[^\]]+\][^{}]*\}/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed.year) && Array.isArray(parsed.month) &&
+              Array.isArray(parsed.day)   && Array.isArray(parsed.hour)) {
+            pillars = {
+              year:  [parsed.year[0],   parsed.year[1]],
+              month: [parsed.month[0],  parsed.month[1]],
+              day:   [parsed.day[0],    parsed.day[1]],
+              hour:  [parsed.hour[0],   parsed.hour[1]]
+            };
+          }
+        } catch (_) {}
       }
+      // Fall back to regex extraction if JSON parse failed or found nothing
+      if (!pillars) {
+        const m = text.match(
+          /年柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^月]*月柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^日]*日柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])[^时]*时柱[：:【\s]*([甲乙丙丁戊己庚辛壬癸]?)([子丑寅卯辰巳午未申酉戌亥]?)/
+        );
+        if (m) {
+          pillars = {
+            year:  [m[1], m[2]], month: [m[3], m[4]],
+            day:   [m[5], m[6]], hour:  [m[7] || '—', m[8] || '—']
+          };
+        }
+      }
+    } else {
+      pillars = getManualPillars();
     }
 
     showPillars(pillars);

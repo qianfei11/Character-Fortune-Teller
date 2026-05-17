@@ -14,29 +14,67 @@ function renderMd(raw) {
     .replace(/\*(.+?)\*/g,     '<em>$1</em>')
     .replace(/^---+$/gm,       '<hr>')
     .replace(/^[\*\-] (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/gs, m => '<ul>' + m + '</ul>');
-  // Table parsing: match blocks of consecutive | lines
-  h = h.replace(/((?:\|.+\|\n?)+)/g, match => {
-    const lines = match.trim().split('\n').map(l => l.trim()).filter(Boolean);
-    const sepIdx = lines.findIndex(l => /^\|[\s\-:|]+\|$/.test(l));
-    if (sepIdx < 0) return match;
-    const parseRow = (line, tag) => {
-      const cells = line.split('|').slice(1, -1).map(c => c.trim());
+    .replace(/(<li>(?:(?!<\/li>).)*<\/li>)/g, m => '<ul>' + m + '</ul>');
+  // Table parsing: process line-by-line to handle ^ anchor correctly in multiline strings
+  const tableLines = h.split('\n');
+  let inTable = false;
+  let tblLines = [];
+  h = tableLines.map(line => {
+    if (/^\|[\s\-:|]+\|$/.test(line)) {
+      // Separator row
+      if (inTable) { tblLines.push(line); return null; }
+      return line;
+    }
+    if (/^\|([^|]+\|)+/.test(line)) {
+      inTable = true;
+      tblLines.push(line);
+      return null;
+    }
+    if (inTable) {
+      // Flush accumulated table rows
+      inTable = false;
+      const sepIdx = tblLines.findIndex(l => /^\|[\s\-:|]+\|$/.test(l));
+      if (sepIdx < 0) { const r = tblLines.join('\n'); tblLines = []; return r; }
+      const parseRow = (l, tag) => {
+        const cells = l.split('|').slice(1, -1).map(c => c.trim());
+        return '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+      };
+      const heads = tblLines.slice(0, sepIdx);
+      const rows  = tblLines.slice(sepIdx + 1);
+      let tbl = '<table>';
+      if (heads.length) tbl += '<thead>' + heads.map(l => parseRow(l, 'th')).join('') + '</thead>';
+      if (rows.length)  tbl += '<tbody>' + rows.map(l => parseRow(l, 'td')).join('') + '</tbody>';
+      tbl += '</table>';
+      tblLines = [];
+      return tbl;
+    }
+    return line;
+  }).join('\n');
+  // Flush any trailing table
+  if (inTable && tblLines.length) {
+    const sepIdx = tblLines.findIndex(l => /^\|[\s\-:|]+\|$/.test(l));
+    const parseRow = (l, tag) => {
+      const cells = l.split('|').slice(1, -1).map(c => c.trim());
       return '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
     };
-    const heads = lines.slice(0, sepIdx);
-    const rows  = lines.slice(sepIdx + 1);
+    const heads = tblLines.slice(0, sepIdx < 0 ? 0 : sepIdx);
+    const rows  = tblLines.slice(sepIdx < 0 ? 0 : sepIdx + 1);
     let tbl = '<table>';
     if (heads.length) tbl += '<thead>' + heads.map(l => parseRow(l, 'th')).join('') + '</thead>';
     if (rows.length)  tbl += '<tbody>' + rows.map(l => parseRow(l, 'td')).join('') + '</tbody>';
-    return tbl + '</table>';
-  });
+    tbl += '</table>';
+    h += '\n' + tbl;
+  }
   h = h
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/\n/g,     '<br>');
-  h = '<p>' + h + '</p>';
-  h = h.replace(/<p>\s*(<h[123]>|<hr>|<ul>|<table>)/g,              '$1');
-  h = h.replace(/(<\/h[123]>|<\/ul>|<hr>|<\/table>)\s*<\/p>/g, '$1');
+    .replace(/\n{2,}/g, '\n\n')
+    .split(/\n\n/)
+    .map(block => {
+      block = block.trim();
+      if (!block) return '';
+      if (/^<(h[123]|hr|ul|ol|table|blockquote)/.test(block)) return block;
+      return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+    })
+    .join('');
   return h;
 }
 
@@ -94,7 +132,7 @@ ${topics}
 
 ## 一、八字排盘
 
-列出完整的年柱、月柱、日柱、时柱（若通过生辰日期推算，请先完成推算再分析），并标注每个天干地支对应的五行属性、阴阳。
+列出完整的年柱、月柱、日柱、时柱，并标注每个天干地支对应的五行属性、阴阳。
 
 ## 二、日主与五行格局
 
@@ -116,6 +154,10 @@ ${topics}
 - 忌神（需要规避的五行）
 - 开运方位、颜色、数字
 - 适合的职业方向
+
+请在分析报告的末尾，以纯文本形式返回以下JSON对象（不 markdown 代码块包裹）：
+{"year":["天干","地支"],"month":["天干","地支"],"day":["天干","地支"],"hour":["天干","地支"]}
+例如：{"year":["甲","子"],"month":["丙","寅"],"day":["戊","戌"],"hour":["辛","酉"]}
 
 ---
 

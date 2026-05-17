@@ -203,7 +203,7 @@ header p {
 .collapsible-body-inner {
   padding-top: 20px;
   opacity: 0;
-  transition: opacity .3s ease .05s;
+  transition: opacity .3s ease;
 }
 .collapsible-grid.open .collapsible-body-inner {
   opacity: 1;
